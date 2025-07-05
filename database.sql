@@ -104,13 +104,13 @@ CREATE TABLE data_sources (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Mapeo de columnas por fuente de datos
+-- Recetas de mapeo por socio comercial
 CREATE TABLE data_source_mappings (
-  id SERIAL PRIMARY KEY,
-  data_source_id BIGINT NOT NULL REFERENCES data_sources(id) ON DELETE CASCADE,
-  source_column TEXT NOT NULL,
-  target_field TEXT NOT NULL,
-  source_type TEXT NOT NULL DEFAULT 'excel'
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  partner_id BIGINT NOT NULL UNIQUE REFERENCES business_partners(id) ON DELETE CASCADE,
+  mapping JSONB NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'excel',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Relaciones jerárquicas entre socios
