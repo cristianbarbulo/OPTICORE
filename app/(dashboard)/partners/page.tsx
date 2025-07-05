@@ -1,28 +1,18 @@
-'use client'
+import PartnersClientPage from './components/partners-client-page'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-import { useEffect, useState } from 'react'
-import ExcelUploader from './components/excel-uploader'
-import { supabase } from '@/lib/supabase'
+export default async function PartnersPage() {
+  const supabase = createSupabaseServerClient()
+  const { data: partners } = await supabase
+    .from('business_partners')
+    .select('*')
+    .eq('type', 'supplier')
 
-export default function PartnersPage() {
-  const [partners, setPartners] = useState<any[]>([])
-
-  useEffect(() => {
-    supabase.from('business_partners').select('*').then(({ data }) => {
-      if (data) setPartners(data)
-    })
-  }, [])
+  const { data: mappings } = await supabase
+    .from('data_source_mappings')
+    .select('*')
 
   return (
-    <div className="space-y-4">
-      <ul className="list-disc pl-5 space-y-2">
-        {partners.map((p) => (
-          <li key={p.id} className="space-y-1">
-            <span className="font-semibold">{p.name}</span>
-            <ExcelUploader partnerId={p.id} />
-          </li>
-        ))}
-      </ul>
-    </div>
+    <PartnersClientPage partners={partners || []} mappings={mappings || []} />
   )
 }

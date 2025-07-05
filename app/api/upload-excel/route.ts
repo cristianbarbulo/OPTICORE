@@ -8,6 +8,7 @@ export async function POST(req: Request) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
   const partnerId = formData.get('partnerId') as string | null
+  const mappingStr = formData.get('mapping') as string | null
 
   if (!file || !partnerId) {
     return NextResponse.json({ error: 'Falta el archivo o el ID del socio.' }, { status: 400 })
@@ -33,15 +34,29 @@ export async function POST(req: Request) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows: any[] = utils.sheet_to_json(sheet)
 
+    let mapping: Record<string, string> = {}
+    if (mappingStr) {
+      try {
+        mapping = JSON.parse(mappingStr)
+      } catch (e) {
+        console.error('JSON mapping parse error', mappingStr)
+      }
+    }
+
+    const get = (row: any, key: string) => {
+      const col = mapping[key] || key
+      return row[col]
+    }
+
     const products = rows.map((r) => ({
-      sku: String(r.sku || ''),
-      name: String(r.name || 'Sin Nombre'),
-      description: String(r.description || ''),
-      brand: String(r.brand || ''),
-      category: String(r.category || ''),
-      price: Number(r.price) || 0,
-      stock: Number(r.stock) || 0,
-      partner_id: parseInt(partnerId, 10),
+      sku: String(get(r, 'sku') || ''),
+      name: String(get(r, 'name') || 'Sin Nombre'),
+      description: String(get(r, 'description') || ''),
+      brand: String(get(r, 'brand') || ''),
+      category: String(get(r, 'category') || ''),
+      price: Number(get(r, 'price')) || 0,
+      stock: Number(get(r, 'stock')) || 0,
+      partner_id: parseInt(partnerId!, 10),
     }))
 
     // --- MEJORA IMPLEMENTADA ---
@@ -59,11 +74,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Error al procesar productos: ${upsertError.message}` }, { status: 500 })
     }
 
+    await supabase
+      .from('data_source_mappings')
+      .upsert(
+        { partner_id: parseInt(partnerId!, 10), mapping, source_type: 'excel' },
+        { onConflict: 'partner_id' }
+      )
+
     await supabase.from('uploaded_files').insert({
       file_name: file.name,
       storage_path: uploadData.path,
       status: 'completed',
-      partner_id: parseInt(partnerId, 10),
+      partner_id: parseInt(partnerId!, 10),
     })
 
     return NextResponse.json({ message: `¡Éxito! Se procesaron (insertaron o actualizaron) ${products.length} productos.` })
