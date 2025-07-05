@@ -1,6 +1,9 @@
 -- Tabla para los roles de usuario
 CREATE TYPE user_role AS ENUM ('admin', 'optometrist', 'seller');
 
+-- Extension para vectores
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Tipos de socios comerciales
 CREATE TYPE business_partner_type AS ENUM ('supplier', 'distributor', 'importer', 'client_business');
 
@@ -35,6 +38,8 @@ CREATE TABLE products (
   price NUMERIC(10,2) NOT NULL,
   stock INT NOT NULL,
   attributes JSONB,
+  normalized_code TEXT,
+  embedding VECTOR(1536),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -104,13 +109,13 @@ CREATE TABLE data_sources (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Mapeo de columnas por fuente de datos
+-- Recetas de mapeo por socio comercial
 CREATE TABLE data_source_mappings (
-  id SERIAL PRIMARY KEY,
-  data_source_id BIGINT NOT NULL REFERENCES data_sources(id) ON DELETE CASCADE,
-  source_column TEXT NOT NULL,
-  target_field TEXT NOT NULL,
-  source_type TEXT NOT NULL DEFAULT 'excel'
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  partner_id BIGINT NOT NULL UNIQUE REFERENCES business_partners(id) ON DELETE CASCADE,
+  mapping JSONB NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'excel',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Relaciones jerárquicas entre socios
@@ -140,3 +145,29 @@ create policy "Allow full access for authenticated users on data_source_mappings
   on data_source_mappings for all to authenticated using (true) with check (true);
 create policy "Allow full access for authenticated users on partner_relationships"
   on partner_relationships for all to authenticated using (true) with check (true);
+
+-- Función para búsqueda por similitud usando embeddings
+create or replace function match_products(query_embedding vector(1536), match_count int default 10)
+returns table (
+  id int,
+  partner_id int,
+  sku text,
+  name text,
+  description text,
+  brand text,
+  category text,
+  price numeric,
+  stock int,
+  attributes jsonb,
+  normalized_code text,
+  embedding vector(1536),
+  score float
+) language plpgsql as $$
+begin
+  return query
+    select p.*, 1 - (p.embedding <=> query_embedding) as score
+    from products p
+    order by p.embedding <=> query_embedding
+    limit match_count;
+end;
+$$;
