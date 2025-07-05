@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { openai } from '@/lib/openai'
+import { openai, createEmbedding } from '@/lib/openai'
 import { supabase } from '@/lib/supabase'
+import { normalizeCode } from '@/lib/utils'
 
 export async function POST(req: Request) {
   const { query } = await req.json()
@@ -34,17 +35,25 @@ export async function POST(req: Request) {
     console.error('JSON parse error', content)
   }
 
-  let q = supabase.from('products').select('*')
-  if (filters.brand) q = q.ilike('brand', `%${filters.brand}%`)
-  if (filters.category) q = q.ilike('category', `%${filters.category}%`)
-  if (filters.minPrice) q = q.gte('price', filters.minPrice)
-  if (filters.maxPrice) q = q.lte('price', filters.maxPrice)
-  if (filters.attributes) {
-    Object.entries(filters.attributes).forEach(([key, value]) => {
-      q = q.contains('attributes', { [key]: value })
-    })
+  const normalized = normalizeCode(query)
+  let { data: exact } = await supabase
+    .from('products')
+    .select('*')
+    .eq('normalized_code', normalized)
+
+  if (exact && exact.length > 0) {
+    return NextResponse.json(exact)
   }
 
-  const { data } = await q
-  return NextResponse.json(data)
+  const embed = await createEmbedding(query)
+  const { data: similar } = await supabase
+    .rpc('match_products', { query_embedding: embed, match_count: 10 })
+
+  let results = similar || []
+  if (filters.brand) results = results.filter(r => r.brand?.toLowerCase().includes(String(filters.brand).toLowerCase()))
+  if (filters.category) results = results.filter(r => r.category?.toLowerCase().includes(String(filters.category).toLowerCase()))
+  if (filters.minPrice) results = results.filter(r => r.price >= filters.minPrice)
+  if (filters.maxPrice) results = results.filter(r => r.price <= filters.maxPrice)
+
+  return NextResponse.json(results)
 }

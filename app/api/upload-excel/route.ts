@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { read, utils } from 'xlsx'
+import Papa from 'papaparse'
+import { createEmbedding } from '@/lib/openai'
+import { normalizeCode } from '@/lib/utils'
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServerClient()
@@ -30,9 +33,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const workbook = read(arrayBuffer)
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows: any[] = utils.sheet_to_json(sheet)
+    let rows: any[] = []
+    if (file.name.endsWith('.csv')) {
+      const text = new TextDecoder().decode(arrayBuffer)
+      rows = (Papa.parse(text, { header: true }).data as any[]).filter(Boolean)
+    } else {
+      const workbook = read(arrayBuffer)
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      rows = utils.sheet_to_json(sheet)
+    }
 
     let mapping: Record<string, string> = {}
     if (mappingStr) {
@@ -48,6 +57,7 @@ export async function POST(req: Request) {
       return row[col]
     }
 
+<<<<<<< HEAD
     const products = rows.map((r) => ({
       sku: String(get(r, 'sku') || ''),
       name: String(get(r, 'name') || 'Sin Nombre'),
@@ -58,6 +68,31 @@ export async function POST(req: Request) {
       stock: Number(get(r, 'stock')) || 0,
       partner_id: parseInt(partnerId!, 10),
     }))
+=======
+    const products = [] as any[]
+    for (const r of rows) {
+      const sku = String(get(r, 'sku') || '')
+      const name = String(get(r, 'name') || 'Sin Nombre')
+      const description = String(get(r, 'description') || '')
+      const brand = String(get(r, 'brand') || '')
+      const category = String(get(r, 'category') || '')
+      const price = Number(get(r, 'price')) || 0
+      const stock = Number(get(r, 'stock')) || 0
+      const embedding = await createEmbedding(`${name} ${brand} ${description}`)
+      products.push({
+        sku,
+        normalized_code: normalizeCode(sku),
+        name,
+        description,
+        brand,
+        category,
+        price,
+        stock,
+        partner_id: parseInt(partnerId!, 10),
+        embedding,
+      })
+    }
+>>>>>>> actualizar-opticore-v2
 
     // --- MEJORA IMPLEMENTADA ---
     // Usamos .upsert() en lugar de .insert().

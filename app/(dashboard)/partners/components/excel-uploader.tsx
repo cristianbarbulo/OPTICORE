@@ -39,6 +39,10 @@ export default function ExcelUploader({ partnerId, existingMapping }: Props) {
     const data = await res.json()
     if (res.ok) {
       setColumns(data.columns || [])
+<<<<<<< HEAD
+=======
+      if (data.mapping) setMapping(data.mapping)
+>>>>>>> actualizar-opticore-v2
       setStatus('')
     } else {
       setStatus('Error: ' + (data.error || ''))
@@ -69,7 +73,11 @@ export default function ExcelUploader({ partnerId, existingMapping }: Props) {
       <div className="space-x-2">
         <Input
           type="file"
+<<<<<<< HEAD
           accept=".xlsx"
+=======
+          accept=".xlsx,.csv"
+>>>>>>> actualizar-opticore-v2
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
         <Button type="button" onClick={analyze} disabled={!file}>

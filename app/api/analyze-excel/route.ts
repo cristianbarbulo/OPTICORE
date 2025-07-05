@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import { read, utils } from 'xlsx'
+<<<<<<< HEAD
+=======
+import { openai } from '@/lib/openai'
+>>>>>>> actualizar-opticore-v2
 
 export async function POST(req: Request) {
   const formData = await req.formData()
@@ -18,7 +22,24 @@ export async function POST(req: Request) {
     const columns = Array.isArray(header)
       ? header.map((c) => String(c))
       : Object.keys(utils.sheet_to_json(sheet)[0] || {})
+<<<<<<< HEAD
     return NextResponse.json({ columns })
+=======
+
+    const prompt = `Detecta las columnas correspondientes a sku, name, description, brand, category, price y stock dentro de: [${columns.join(', ')}]. Devuelve un JSON.`
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0
+    })
+    let mapping: Record<string, string> = {}
+    try {
+      mapping = JSON.parse(completion.choices[0].message.content || '{}')
+    } catch (e) {
+      mapping = {}
+    }
+    return NextResponse.json({ columns, mapping })
+>>>>>>> actualizar-opticore-v2
   } catch (e) {
     return NextResponse.json(
       { error: 'No se pudo leer el archivo.' },
