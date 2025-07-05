@@ -4,7 +4,11 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export default function ExcelUploader() {
+interface Props {
+  partnerId?: number
+}
+
+export default function ExcelUploader({ partnerId }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [status, setStatus] = useState('')
 
@@ -13,6 +17,7 @@ export default function ExcelUploader() {
     setStatus('Cargando...')
     const formData = new FormData()
     formData.append('file', file)
+    if (partnerId) formData.append('partnerId', String(partnerId))
     const res = await fetch('/api/upload-excel', { method: 'POST', body: formData })
     if (res.ok) {
       setStatus('Procesando archivo')

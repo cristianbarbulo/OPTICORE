@@ -1,6 +1,9 @@
 -- Tabla para los roles de usuario
 CREATE TYPE user_role AS ENUM ('admin', 'optometrist', 'seller');
 
+-- Tipos de socios comerciales
+CREATE TYPE business_partner_type AS ENUM ('supplier', 'distributor', 'importer', 'client_business');
+
 -- Tabla de perfiles de usuarios
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -9,21 +12,21 @@ CREATE TABLE profiles (
   avatar_url TEXT
 );
 
--- Tabla de Proveedores
-CREATE TABLE suppliers (
+-- Tabla de Socios Comerciales
+CREATE TABLE business_partners (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   contact_person TEXT,
   phone TEXT,
   api_url TEXT,
   api_key TEXT,
+  type business_partner_type NOT NULL DEFAULT 'supplier',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabla de Productos
 CREATE TABLE products (
   id SERIAL PRIMARY KEY,
-  supplier_id INT REFERENCES suppliers(id) ON DELETE SET NULL,
+  partner_id INT REFERENCES business_partners(id) ON DELETE SET NULL,
   sku TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
@@ -83,19 +86,57 @@ CREATE TABLE sale_items (
 -- Tabla de archivos cargados
 CREATE TABLE uploaded_files (
   id SERIAL PRIMARY KEY,
-  supplier_id INT REFERENCES suppliers(id) ON DELETE CASCADE,
+  partner_id INT REFERENCES business_partners(id) ON DELETE CASCADE,
   file_name TEXT NOT NULL,
   storage_path TEXT NOT NULL,
   status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Fuentes de datos por socio comercial
+CREATE TABLE data_sources (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  partner_id INT NOT NULL REFERENCES business_partners(id) ON DELETE CASCADE,
+  source_type TEXT NOT NULL,
+  config JSONB,
+  is_active BOOLEAN DEFAULT true,
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Mapeo de columnas por fuente de datos
+CREATE TABLE data_source_mappings (
+  id SERIAL PRIMARY KEY,
+  data_source_id BIGINT NOT NULL REFERENCES data_sources(id) ON DELETE CASCADE,
+  source_column TEXT NOT NULL,
+  target_field TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'excel'
+);
+
+-- Relaciones jerárquicas entre socios
+CREATE TABLE partner_relationships (
+  parent_partner_id INT NOT NULL REFERENCES business_partners(id) ON DELETE CASCADE,
+  child_partner_id INT NOT NULL REFERENCES business_partners(id) ON DELETE CASCADE,
+  PRIMARY KEY (parent_partner_id, child_partner_id)
+);
+
 -- Habilitar RLS
 alter table profiles enable row level security;
-alter table suppliers enable row level security;
+alter table business_partners enable row level security;
 alter table products enable row level security;
 alter table clients enable row level security;
 alter table prescriptions enable row level security;
 alter table sales enable row level security;
 alter table sale_items enable row level security;
 alter table uploaded_files enable row level security;
+alter table data_sources enable row level security;
+alter table data_source_mappings enable row level security;
+alter table partner_relationships enable row level security;
+
+-- Políticas RLS básicas
+create policy "Allow full access for authenticated users on data_sources"
+  on data_sources for all to authenticated using (true) with check (true);
+create policy "Allow full access for authenticated users on data_source_mappings"
+  on data_source_mappings for all to authenticated using (true) with check (true);
+create policy "Allow full access for authenticated users on partner_relationships"
+  on partner_relationships for all to authenticated using (true) with check (true);

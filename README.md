@@ -1,6 +1,6 @@
 # OptiCore
 
-OptiCore es una plataforma SaaS para la gestión integral de ópticas, con un buscador inteligente basado en IA y una profunda integración con proveedores. 
+OptiCore es ahora una plataforma B2B para la cadena de suministro de ópticas. Incluye un asistente de IA para mapeo de datos y soporta múltiples **socios comerciales** (proveedores, distribuidores, importadores, etc.).
 
 ## Stack Tecnológico
 - **Next.js 14** con App Router
@@ -8,7 +8,7 @@ OptiCore es una plataforma SaaS para la gestión integral de ópticas, con un bu
 - **Tailwind CSS**
 - **Shadcn/UI**
 - **Supabase** (PostgreSQL, Auth, Storage)
-- **OpenAI** para procesamiento de lenguaje natural
+- **OpenAI** para procesamiento de lenguaje natural y mapeo inteligente de datos
 - **xlsx** para lectura de archivos Excel
 
 ## Configuración del Entorno

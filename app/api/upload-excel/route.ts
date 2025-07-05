@@ -7,10 +7,10 @@ export async function POST(req: Request) {
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
-  const supplierId = formData.get('supplierId') as string | null
+  const partnerId = formData.get('partnerId') as string | null
 
-  if (!file || !supplierId) {
-    return NextResponse.json({ error: 'Falta el archivo o el ID del proveedor.' }, { status: 400 })
+  if (!file || !partnerId) {
+    return NextResponse.json({ error: 'Falta el archivo o el ID del socio.' }, { status: 400 })
   }
 
   const arrayBuffer = await file.arrayBuffer()
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       category: String(r.category || ''),
       price: Number(r.price) || 0,
       stock: Number(r.stock) || 0,
-      supplier_id: parseInt(supplierId, 10),
+      partner_id: parseInt(partnerId, 10),
     }))
 
     // --- MEJORA IMPLEMENTADA ---
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       file_name: file.name,
       storage_path: uploadData.path,
       status: 'completed',
-      supplier_id: parseInt(supplierId, 10),
+      partner_id: parseInt(partnerId, 10),
     })
 
     return NextResponse.json({ message: `¡Éxito! Se procesaron (insertaron o actualizaron) ${products.length} productos.` })
