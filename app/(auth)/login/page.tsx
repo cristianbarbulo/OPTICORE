@@ -17,13 +17,18 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null) // Limpiar errores previos
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
+
     if (error) {
       setError(error.message)
+      setLoading(false)
     } else {
-      router.push('/')
+      // Esta es la línea clave que se corrigió:
+      // Forza un refresco de la página, actualizando el estado de la sesión en el servidor.
+      router.refresh()
     }
-    setLoading(false)
   }
 
   return (

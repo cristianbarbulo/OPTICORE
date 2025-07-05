@@ -1,0 +1,12 @@
+# Dependencias
+/node_modules
+
+# Archivos de entorno local (contiene secretos)
+.env.local
+
+# Archivos de compilación de Next.js
+/.next/
+
+# Archivos del sistema operativo
+.DS_Store
+npm-debug.log*
