@@ -37,8 +37,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <Link href="/sales" className="block p-2 rounded-md hover:bg-gray-700">
             Ventas
           </Link>
-          <Link href="/suppliers" className="block p-2 rounded-md hover:bg-gray-700">
-            Proveedores
+          <Link href="/partners" className="block p-2 rounded-md hover:bg-gray-700">
+            Socios
+          </Link>
+          <Link href="/predictions" className="block p-2 rounded-md hover:bg-gray-700">
+            Predicciones
           </Link>
         </nav>
       </aside>

@@ -6,7 +6,19 @@ export async function POST(req: Request) {
   const { query } = await req.json()
   if (!query) return NextResponse.json([], { status: 400 })
 
-  const prompt = `Eres un asistente de base de datos. Convierte la siguiente consulta de usuario para una óptica en un objeto JSON con los campos posibles: brand, category, minPrice, maxPrice, attributes. Responde solo con el JSON. Consulta: "${query}"`
+  // Obtenemos contexto de marcas y categorías para el modelo
+  const { data: brandRows } = await supabase.from('products').select('brand')
+  const brands = Array.from(
+    new Set((brandRows || []).map((r) => r.brand).filter(Boolean))
+  )
+  const { data: categoryRows } = await supabase.from('products').select('category')
+  const categories = Array.from(
+    new Set((categoryRows || []).map((r) => r.category).filter(Boolean))
+  )
+
+  const prompt = `Contexto - Marcas: ${brands.join(', ')}. Categorías: ${categories.join(
+    ', '
+  )}. Convierte la siguiente consulta de usuario para una óptica en un objeto JSON con los campos posibles: brand, category, minPrice, maxPrice, attributes. Responde solo con el JSON. Consulta: "${query}"`
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
